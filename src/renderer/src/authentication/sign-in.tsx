@@ -1,15 +1,38 @@
-/* eslint-disable prettier/prettier */
 import React, { useState } from 'react'
-import logo from "@renderer/assets/login-pic.jpg"
+import logo from '@renderer/assets/login-pic.jpg'
+import { useAuth } from '../../context/AuthContextProvider'
 
 export default function Signin(): React.ReactElement {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const { login, logout } = useAuth() // Get the login function from AuthContext
 
-    const handleSubmit = (e: React.FormEvent<HTMLButtonElement>): void => {
+    const handleSubmit = async (e: React.FormEvent<HTMLButtonElement>): Promise<void> => {
         e.preventDefault()
         console.log('username:', username)
         console.log('password:', password)
+        // Perform login logic here, e.g., API call
+        // If successful, redirect to the dashboard or another page
+        // window.location.href = '/dashboard'
+        try {
+            const response = await fetch('http://127.0.0.1:8000/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            })
+            const data = await response.json()
+            console.log(data)
+            if (response.ok) {
+                window.localStorage.removeItem('userData') // Clear any previous user data
+                login(data.access_token, username) // Call the login function from AuthContext
+            } else {
+                alert('Login failed');
+            }
+        } catch (err) {
+            console.error(err)
+        }
     }
 
     return (
@@ -51,7 +74,7 @@ export default function Signin(): React.ReactElement {
                     </div>
                     <div className='mb-4'>
                         <button
-                            onSubmit={(e) => handleSubmit(e)}
+                            onClick={(e) => handleSubmit(e)}
                             type="submit"
                             className="bg-blue-500 font-serif text-white p-2 rounded-xl w-[80%] mt-2"
                         >
@@ -63,7 +86,7 @@ export default function Signin(): React.ReactElement {
                     </div>
                     <div>
                         <p className='text-sm'>New User? <a className='text-blue-500' href="/signup">Sign Up</a></p>
-            
+
                     </div>
                 </form>
             </div>

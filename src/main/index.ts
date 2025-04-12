@@ -40,6 +40,10 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
+
+  // set the allowed APIs for the renderer process
+  
+
   electronApp.setAppUserModelId('com.electron')
 
   // Default open or close DevTools by F12 in development
@@ -59,6 +63,9 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+
+
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
