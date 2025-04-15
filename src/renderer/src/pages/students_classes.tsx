@@ -1,7 +1,10 @@
+import GoBack from "@renderer/components/GoBack"
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export default function StudentsClassesPage() {
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="min-h-screen flex flex-col bg-gray-100 items-center justify-start p-4">
+            <GoBack />
             <div className="w-full max-w-3xl bg-white shadow-md rounded-lg">
                 <div className="bg-blue-600 text-white text-center py-4 rounded-t-lg">
                     <h2 className="text-2xl font-semibold">Classes & Students Info Page</h2>
