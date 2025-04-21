@@ -1,26 +1,97 @@
-/* eslint-disable prettier/prettier */
-// import { useEffect, useState } from "react"
-import { useAuth } from "../../context/AuthContextProvider";
-
+import { useState } from 'react'
+import {
+    AppBar,
+    Toolbar,
+    Typography,
+    IconButton,
+    Menu,
+    MenuItem,
+    Box,
+    Avatar,
+    Tooltip,
+    Divider,
+    Button
+} from '@mui/material'
+import SettingsIcon from '@mui/icons-material/Settings'
+import LogoutIcon from '@mui/icons-material/Logout'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
+import { useAuth } from '../../context/AuthContextProvider'
 
 export default function Navbar(): JSX.Element {
-    const { logout, user } = useAuth() // Get the logout function from AuthContext
-    console.log(user)
+    const { logout, user } = useAuth()
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+    const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget)
+    }
+
+    const handleMenuClose = () => {
+        setAnchorEl(null)
+    }
+
     const autherzation = user?.isAdmin ? 'Admin' : 'User'
+
     return (
-        <div className="flex flex-row text-white justify-between items-center bg-blue-500 p-3">
-            <div>
-                <h2 className="text-lg">Attendance Dashboard</h2>
-            </div>
-            <div className="flex flex-row gap-2 justify-center items-center">
-                <h3 className="text-lg pr-3">Username: {user?.username} | {autherzation}</h3>
-                <a href="/settings" className=" p-2 text-white rounded-md bg-gray-800 hover:bg-gray-700 hover:text-gray-300">Settings</a>
-                <div className="flex flex-row   rounded-md">
-                    <button className="rounded-md text-white rounded-r-none border-r p-2 border-r-black bg-gray-800 hover:bg-gray-700 hover:text-gray-300">Switch</button>
-                    <button onClick={() => { logout() }} className="rounded-md text-white rounded-l-none border-l p-2 border-l-black bg-gray-800 hover:bg-gray-700 hover:text-gray-300">Logout</button>
-                </div>
-            </div>
-           
-        </div>
+        <AppBar position="static" color="primary" elevation={2}>
+            <Toolbar sx={{ justifyContent: 'space-between' }}>
+                <Typography variant="h6" noWrap component="div">
+                    Attendance Dashboard
+                </Typography>
+
+                <Box display="flex" alignItems="center" gap={2}>
+                    <Typography variant="body1" sx={{ display: { xs: 'none', md: 'block' } }}>
+                        {user?.username} | {autherzation}
+                    </Typography>
+
+                    <Tooltip title="Account actions">
+                        <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
+                            <Avatar alt={user?.username} src="/default-avatar.png" />
+                        </IconButton>
+                    </Tooltip>
+
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={handleMenuClose}
+                        PaperProps={{
+                            elevation: 4,
+                            sx: {
+                                overflow: 'visible',
+                                mt: 1.5,
+                                minWidth: 180,
+                                '&:before': {
+                                    content: '""',
+                                    display: 'block',
+                                    position: 'absolute',
+                                    top: 0,
+                                    right: 14,
+                                    width: 10,
+                                    height: 10,
+                                    bgcolor: 'background.paper',
+                                    transform: 'translateY(-50%) rotate(45deg)',
+                                    zIndex: 0,
+                                },
+                            },
+                        }}
+                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                    >
+                        <MenuItem onClick={() => { window.location.href = '/settings' }}>
+                            <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
+                            Settings
+                        </MenuItem>
+                        <MenuItem onClick={() => { alert('Switch logic placeholder') }}>
+                            <SwapHorizIcon fontSize="small" sx={{ mr: 1 }} />
+                            Switch
+                        </MenuItem>
+                        <Divider />
+                        <MenuItem onClick={() => { logout() }}>
+                            <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
+                            Logout
+                        </MenuItem>
+                    </Menu>
+                </Box>
+            </Toolbar>
+        </AppBar>
     )
 }

@@ -2,107 +2,125 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContextProvider'
 import GoBack from '@renderer/components/GoBack'
 
+import {
+    Avatar,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Typography,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    Container,
+    CircularProgress,
+    Box,
+    Paper
+} from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+
+type Class_ = {
+    id: number
+    name: string
+    college: string
+    department: string
+    year: number
+}
+
 type Student = {
     id: number
     name: string
-    class_id: number
     image_uri: string
-    college: string
-    department: string
-    year: string
-    group: string
+    classes: Class_[]
 }
 
 export default function ViewClassesPage(): JSX.Element {
     const { user } = useAuth()
-    const [studentsByClass, setStudentsByClass] = useState<Record<number, Student[]>>({})
-    const [expandedClass, setExpandedClass] = useState<number | null>(null)
+    const [students, setStudents] = useState<Student[]>([])
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const getData = async () => {
-            const res = await fetch('http://127.0.0.1:8000/students/all', {
-                headers: {
-                    Authorization: `Bearer ${user?.access_token}`,
-                    'Content-Type': 'application/json'
+            try {
+                const res = await fetch('http://127.0.0.1:8000/students/all-info', {
+                    headers: {
+                        Authorization: `Bearer ${user?.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                const data = await res.json()
+                console.log('Students:', data)
+                if (res.status === 401 || data?.detail === 'Unauthorized') {
+                    alert('Session expired, please login again')
+                    localStorage.removeItem('userData')
+                    window.location.href = '/login'
+                    return
                 }
-            })
 
-            const data = await res.json()
-            if (data.status === 401) {
-                alert('Session expired, please login again')
-                localStorage.removeItem('userData')
-                window.location.href = '/login'
-                return
+                setStudents(data)
+            } catch (error) {
+                console.error('Failed to fetch students:', error)
+            } finally {
+                setLoading(false)
             }
-            console.log('API Response:', data)
-            const grouped: Record<number, Student[]> = {}
-            data.forEach((student: Student) => {
-                console.log('Student class id:', student.class_id)
-                if (!grouped[student.class_id]) grouped[student.class_id] = []
-                // student.image_uri = student.image_uri.replace('jpg', 'svg')
-                grouped[student.class_id].push(student)
-            })
-            console.log('Grouped Students:', grouped)
-            setStudentsByClass(grouped)
         }
 
         getData()
     }, [user])
 
-    const toggleClass = (classId: number) => {
-        setExpandedClass((prev) => (prev === classId ? null : classId))
-    }
-
     return (
-        <div className="min-h-screen flex flex-col justify-start items-center bg-gray-100 p-6">
+        <Container maxWidth="md" sx={{ mt: 4 }}>
             <GoBack />
-            <div className="max-w-5xl mx-auto space-y-6">
-                {Object.entries(studentsByClass).map(([classId, students]) => (
-                    <div key={classId} className="bg-white shadow-md rounded-lg">
-                        <button
-                            onClick={() => toggleClass(Number(classId))}
-                            className="w-full text-left px-6 py-4 bg-blue-600 text-white text-xl font-semibold rounded-t-lg hover:bg-blue-700 transition"
-                        >
-                            Class {classId}
-                        </button>
+            <Typography variant="h4" fontWeight="bold" gutterBottom align="center">
+                Students and Their Classes
+            </Typography>
 
-                        {expandedClass === Number(classId) && (
-                            <div className="p-4 overflow-x-auto">
-                                <table className="min-w-full text-sm text-left border border-gray-200 rounded">
-                                    <thead className="bg-gray-200 text-gray-700">
-                                        <tr>
-                                            <th className="px-4 py-2">Image</th>
-                                            <th className="px-4 py-2">Name</th>
-                                            <th className="px-4 py-2">College</th>
-                                            <th className="px-4 py-2">Department</th>
-                                            <th className="px-4 py-2">Year</th>
-                                            <th className="px-4 py-2">Group</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {students.map((student) => (
-                                            <tr key={student.id} className="border-t">
-                                                <td className="px-4 py-2">
-                                                    <img
-                                                        src={student.image_uri}
-                                                        alt={student.name}
-                                                        className="w-12 h-12 rounded-full object-cover"
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-2">{student.name}</td>
-                                                <td className="px-4 py-2">{student.college}</td>
-                                                <td className="px-4 py-2">{student.department}</td>
-                                                <td className="px-4 py-2">{student.year}</td>
-                                                <td className="px-4 py-2">{student.group}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
+            {loading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="30vh">
+                    <CircularProgress />
+                </Box>
+            ) : (
+                students.map((student) => (
+                    <Accordion key={student.id} sx={{ mb: 2 }} TransitionProps={{ unmountOnExit: true }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box display="flex" alignItems="center" gap={2}>
+                                <Avatar src={student.image_uri} alt={student.name} />
+                                <Typography fontWeight="medium">{student.name}</Typography>
+                            </Box>
+                        </AccordionSummary>
+
+                        <AccordionDetails>
+                            {student.classes.length === 0 ? (
+                                <Typography color="text.secondary">No classes assigned.</Typography>
+                            ) : (
+                                <Paper elevation={1}>
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell><strong>Class Name</strong></TableCell>
+                                                <TableCell><strong>College</strong></TableCell>
+                                                <TableCell><strong>Department</strong></TableCell>
+                                                <TableCell><strong>Year</strong></TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {student.classes.map((cls) => (
+                                                <TableRow key={cls.id}>
+                                                    <TableCell>{cls.name}</TableCell>
+                                                    <TableCell>{cls.college}</TableCell>
+                                                    <TableCell>{cls.department}</TableCell>
+                                                    <TableCell>{cls.year}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </Paper>
+                            )}
+                        </AccordionDetails>
+                    </Accordion>
+                ))
+            )}
+        </Container>
     )
 }

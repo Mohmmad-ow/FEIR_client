@@ -1,3 +1,4 @@
+// Import block remains unchanged
 import { useEffect, useState } from 'react'
 import {
     Box,
@@ -8,7 +9,14 @@ import {
     Typography,
     InputLabel,
     FormControl,
-    TextField
+    TextField,
+    Snackbar,
+    Alert,
+    CircularProgress,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions
 } from '@mui/material'
 import { DataGrid, GridRowsProp, GridColDef } from '@mui/x-data-grid'
 import { useAuth } from '../../context/AuthContextProvider'
@@ -22,15 +30,36 @@ type Student = {
 }
 
 export default function AttendanceProcessingPage(): JSX.Element {
-    const [image, setImage] = useState<File | null>(null)
+    const [files, setFiles] = useState<File[]>([])
     const [classId, setClassId] = useState<number>(0)
+    const [lastClassId, setLastClassId] = useState<number>(0)
     const [classes, setClasses] = useState<any[]>([])
     const [studentsAttended, setStudentsAttended] = useState<GridRowsProp>([])
+    const [loading, setLoading] = useState(false)
+    const [resetDialogOpen, setResetDialogOpen] = useState(false)
     const { user } = useAuth()
+
+    const [mediaType, setMediaType] = useState<'image' | 'video'>('image')
+
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: '',
+        severity: 'success'
+    })
+
+    const showSnackbar = (message: string, severity: 'success' | 'error') => {
+        setSnackbar({ open: true, message, severity })
+    }
 
     const columns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 90 },
-        { field: 'attended', headerName: 'Attended', width: 120, type: 'boolean', editable: true },
+        {
+            field: 'attended',
+            headerName: 'Attended',
+            width: 120,
+            type: 'boolean',
+            editable: true
+        },
         { field: 'name', headerName: 'Name', width: 180 }
     ]
 
@@ -46,7 +75,6 @@ export default function AttendanceProcessingPage(): JSX.Element {
                 })
                 const data = await res.json()
                 if (res.status === 401) {
-                    alert('Session expired, please login again')
                     localStorage.removeItem('userData')
                     window.location.href = '/login'
                 } else {
@@ -54,10 +82,83 @@ export default function AttendanceProcessingPage(): JSX.Element {
                 }
             } catch (err) {
                 console.error(err)
+                showSnackbar('Failed to fetch class data', 'error')
             }
         }
         if (user?.access_token) getData()
     }, [user?.access_token])
+
+    const onProcess = async (): Promise<void> => {
+        if (files.length === 0 || !classId) {
+            showSnackbar('Please upload file(s) and select a class.', 'error')
+            return
+        }
+
+        setLoading(true)
+        const formData = new FormData()
+
+        const isImage = mediaType === 'image'
+        const fileKey = isImage ? 'classroom_images' : 'video_file'
+        files.forEach((file) => formData.append(fileKey, file))
+
+        formData.append('class_id', classId.toString())
+        console.log('Form data:', formData)
+        const endpoint = isImage
+            ? 'http://127.0.0.1:8000/attendance/recognize'
+            : 'http://127.0.0.1:8000/attendance/recognize_from_video'
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${user?.access_token}`
+                },
+                body: formData
+            })
+
+            const result = await res.json()
+            console.log('Result:', result)
+            if (res.status === 401) {
+                localStorage.removeItem('userData')
+                window.location.href = '/login'
+                return
+            }
+
+            if (res.ok) {
+                const newStudents = [
+                    ...result.present.map((student: any) => ({
+                        id: student.id,
+                        name: student.name,
+                        attended: true
+                    })),
+                    ...result.absent.map((student: any) => ({
+                        id: student.id,
+                        name: student.name,
+                        attended: false
+                    }))
+                ]
+
+                setStudentsAttended((prev) => {
+                    const existing = new Map(prev.map((s) => [s.id, s]))
+                    newStudents.forEach((s) => {
+                        if (!existing.has(s.id)) {
+                            existing.set(s.id, s)
+                        }
+                    })
+                    return Array.from(existing.values())
+                })
+
+                showSnackbar('Attendance processed successfully!', 'success')
+            } else {
+                showSnackbar(result.error || 'Failed to process attendance', 'error')
+            }
+        } catch (error) {
+            console.error('Error:', error)
+            showSnackbar('An error occurred while processing attendance', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const onHandleAttendanceSubmit = async (): Promise<void> => {
         if (!user?.access_token) return
@@ -80,23 +181,20 @@ export default function AttendanceProcessingPage(): JSX.Element {
 
             const data = await res.json()
             if (res.status === 401) {
-                alert('Session expired, please login again')
                 localStorage.removeItem('userData')
                 window.location.href = '/login'
                 return
             }
 
             if (res.ok) {
-                alert('Attendance submitted successfully!')
                 setStudentsAttended([])
-                console.log('API Response', data)
+                showSnackbar('Attendance submitted successfully!', 'success')
             } else {
-                alert('Failed to submit attendance')
-                console.error(data)
+                showSnackbar('Failed to submit attendance', 'error')
             }
         } catch (error) {
             console.error('Error:', error)
-            alert('An error occurred while submitting attendance.')
+            showSnackbar('Error occurred while submitting attendance', 'error')
         }
     }
 
@@ -106,109 +204,80 @@ export default function AttendanceProcessingPage(): JSX.Element {
             Name: row.name,
             Attended: row.attended ? 'Yes' : 'No'
         }))
-
         const worksheet = XLSX.utils.json_to_sheet(worksheetData)
         const workbook = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance')
-
         XLSX.writeFile(workbook, 'Attendance_Report.xlsx')
     }
 
-    const onProcess = async (): Promise<void> => {
-        if (!image || !classId) {
-            alert('Please upload an image/video and select a class/group.')
-            return
+    const handleClassChange = (e: any) => {
+        const newClassId = Number(e.target.value)
+        if (studentsAttended.length > 0 && newClassId !== classId) {
+            setResetDialogOpen(true)
         }
+        setLastClassId(classId)
+        setClassId(newClassId)
+    }
 
-        const formData = new FormData()
-        formData.append('classroom_image', image)
-        formData.append('class_id', classId.toString())
+    const resetAttendance = () => {
+        setStudentsAttended([])
+        setResetDialogOpen(false)
+    }
 
-        try {
-            const res = await fetch('http://127.0.0.1:8000/attendance/recognize', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${user?.access_token}`
-                },
-                body: formData
-            })
-
-            const result = await res.json()
-
-            if (res.status === 401) {
-                alert('Session expired, please login again')
-                localStorage.removeItem('userData')
-                window.location.href = '/login'
-                return
-            }
-
-            if (res.ok) {
-                const newStudents = result.present.map((student: any) => ({
-                    id: student.id,
-                    name: student.name,
-                    attended: true
-                }))
-
-                setStudentsAttended((prev) => {
-                    const existingIds = new Set(prev.map((s) => s.id))
-                    const combined = [...prev]
-                    newStudents.forEach((s) => {
-                        if (!existingIds.has(s.id)) {
-                            combined.push(s)
-                        }
-                    })
-                    return combined
-                })
-
-                alert('Attendance processed successfully!')
-            } else {
-                alert(result.error || 'Failed to process attendance')
-            }
-        } catch (error) {
-            console.error('Error:', error)
-            alert('An error occurred while processing attendance.')
-        }
+    const handleRowEditCommit = (params: any) => {
+        const { id, field, value } = params
+        setStudentsAttended((prev) =>
+            prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+        )
     }
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4 }}>
             <GoBack />
             <Box
-                sx={{
-                    backgroundColor: 'white',
-                    boxShadow: 3,
-                    borderRadius: 2,
-                    p: 4,
-                    mb: 4,
-                    mt: 4
-                }}
+                sx={{ backgroundColor: 'white', boxShadow: 3, borderRadius: 2, p: 4, mb: 4, mt: 4 }}
             >
                 <Typography variant="h5" gutterBottom align="center" color="primary">
                     Attendance Processing Page
                 </Typography>
 
-                <Box sx={{ mb: 3 }}>
-                    <InputLabel>Upload Video/Image</InputLabel>
-                    <TextField
-                        type="file"
-                        fullWidth
-                        inputProps={{ accept: 'image/*,video/*' }}
-                        onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) setImage(file)
-                        }}
-                    />
+                <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                    <FormControl sx={{ flex: 1 }}>
+                        <InputLabel>Media Type</InputLabel>
+                        <Select
+                            value={mediaType}
+                            label="Media Type"
+                            onChange={(e) => {
+                                setFiles([])
+                                setMediaType(e.target.value as 'image' | 'video')
+                            }}
+                        >
+                            <MenuItem value="image">Image(s)</MenuItem>
+                            <MenuItem value="video">Video</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <Box sx={{ flex: 2 }}>
+                        <InputLabel>Upload File(s)</InputLabel>
+                        <TextField
+                            type="file"
+                            fullWidth
+                            inputProps={{
+                                accept: mediaType === 'image' ? 'image/*' : 'video/*',
+                                multiple: mediaType === 'image'
+                            }}
+                            onChange={(e) => {
+                                const selectedFiles = Array.from(e.target.files || [])
+                                setFiles(selectedFiles)
+                            }}
+                        />
+                    </Box>
                 </Box>
 
                 <Box sx={{ mb: 3 }}>
                     <FormControl fullWidth>
                         <InputLabel>Select Class/Group</InputLabel>
-                        <Select
-                            fullWidth
-                            value={classId}
-                            onChange={(e) => setClassId(Number(e.target.value))}
-                            displayEmpty
-                        >
+                        <Select fullWidth value={classId} onChange={handleClassChange} displayEmpty>
                             <MenuItem value={0} disabled>
                                 Select a class
                             </MenuItem>
@@ -230,6 +299,7 @@ export default function AttendanceProcessingPage(): JSX.Element {
                 >
                     Submit & View Results
                 </Button>
+
                 <Button
                     onClick={exportToExcel}
                     disabled={studentsAttended.length === 0}
@@ -239,26 +309,44 @@ export default function AttendanceProcessingPage(): JSX.Element {
                 >
                     Export to Excel
                 </Button>
+
+                <Button
+                    variant="outlined"
+                    color="error"
+                    fullWidth
+                    sx={{ mt: 2 }}
+                    onClick={resetAttendance}
+                >
+                    Reset Attendance
+                </Button>
             </Box>
 
-            <Box
-                sx={{
-                    backgroundColor: 'white',
-                    boxShadow: 2,
-                    borderRadius: 2,
-                    p: 3
-                }}
-            >
+            <Box sx={{ backgroundColor: 'white', boxShadow: 2, borderRadius: 2, p: 3 }}>
                 <Typography variant="h6" gutterBottom align="center" color="primary">
                     Attendance Results
                 </Typography>
-                <DataGrid
-                    rows={studentsAttended}
-                    columns={columns}
-                    pageSize={10}
-                    autoHeight
-                    disableSelectionOnClick
-                />
+                {loading ? (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="200px">
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <DataGrid
+                        rows={studentsAttended}
+                        columns={columns}
+                        editMode="cell"
+                        processRowUpdate={(newRow) => {
+                            setStudentsAttended((prevRows) =>
+                                prevRows.map((row) => (row.id === newRow.id ? newRow : row))
+                            )
+                            return newRow
+                        }}
+                        onProcessRowUpdateError={(error) => {
+                            console.error('Row update error:', error)
+                            showSnackbar('Failed to update row', 'error')
+                        }}
+                        getRowId={(row) => row.id}
+                    />
+                )}
             </Box>
 
             <Box sx={{ mb: 4 }}>
@@ -272,6 +360,34 @@ export default function AttendanceProcessingPage(): JSX.Element {
                     Submit Attendance
                 </Button>
             </Box>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity as 'success' | 'error'}
+                    variant="filled"
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+
+            <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
+                <DialogTitle>Reset Attendance?</DialogTitle>
+                <DialogContent>
+                    Changing the class will reset current attendance data. Are you sure?
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={resetAttendance} color="error">
+                        Reset
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     )
 }

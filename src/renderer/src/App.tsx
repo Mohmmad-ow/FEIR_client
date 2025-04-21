@@ -14,6 +14,8 @@ import AssignStudentsPage from './pages/assign-students'
 import AddRemoveStudentsPage from './pages/edit-assign-students'
 import AttendanceRecords from './pages/attendence-records'
 import ViewStudents from './pages/view-students'
+import CreateStudentsPage from './pages/add-students'
+import DeleteStudents from './pages/delete-students'
 function App(): JSX.Element {
     // const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
 
@@ -34,9 +36,10 @@ function App(): JSX.Element {
                 <Route path="/remove-class" element={<RemoveClassPage />} />
                 <Route path="/view-class" element={<ViewClassesPage />} />
                 <Route path="/assign-students" element={<AssignStudentsPage />} />
-                <Route path="/assign-students/edit" element={<AddRemoveStudentsPage />} />
                 <Route path="/attendance-records" element={<AttendanceRecords />} />
                 <Route path="/view-students" element={<ViewStudents />} />
+                <Route path="students/delete" element={<DeleteStudents />} />
+                <Route path="/students/create" element={<CreateStudentsPage />} />
             </Routes>
         </BrowserRouter>
     )

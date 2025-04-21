@@ -1,111 +1,143 @@
 import React, { useState } from "react";
+import {
+    Container,
+    Typography,
+    TextField,
+    Button,
+    Box,
+    Paper,
+    Grid,
+    Snackbar,
+    Alert,
+} from "@mui/material";
 import { useAuth } from "../../context/AuthContextProvider";
 import GoBack from "@renderer/components/GoBack";
+import { useNavigate } from "react-router";
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export default function AddClassPage() {
     const [className, setClassName] = useState("");
     const [college, setCollege] = useState("");
     const [department, setDepartment] = useState("");
     const [year, setYear] = useState<number>(1);
 
-    const { user } = useAuth(); // Get the user data from AuthContext
+    const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const { user } = useAuth();
+    const navigate = useNavigate();
+
     const handleSubmit = async () => {
-        // e.preventDefault();
-        console.log("Class Added:", className);
-        setClassName("");
-
         try {
             let response = await fetch("http://127.0.0.1:8000/classes/create", {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${user?.access_token}`, // Add token
+                    Authorization: `Bearer ${user?.access_token}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ name: className, college, department, year: year.toString() }),
             });
-            response = await response.json();
-            console.log(response); 
+
+            const data = await response.json();
+
+            if (data.status === 200 || response.status === 200) {
+                setSnackbar({
+                    open: true,
+                    message: "Class added successfully!",
+                    severity: "success",
+                });
+                setTimeout(() => navigate("/"), 1500);
+            } else {
+                setSnackbar({
+                    open: true,
+                    message: "Failed to add class. Please try again.",
+                    severity: "error",
+                });
+            }
         } catch (error) {
             console.error("Error adding class:", error);
+            setSnackbar({
+                open: true,
+                message: "An error occurred while adding the class.",
+                severity: "error",
+            });
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-4">
+        <Container maxWidth="sm" sx={{ mt: 4 }}>
             <GoBack />
-            <div className="w-full max-w-lg bg-gray-300 shadow-md rounded-lg">
-                <div className="bg-blue-600 text-white text-center py-4 rounded-t-lg">
-                    <h2 className="text-2xl font-semibold">Add Class</h2>
-                </div>
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+                <Typography variant="h5" component="h1" align="center" gutterBottom>
+                    Add New Class
+                </Typography>
 
-                <div className="p-6">
-                    <form >
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Class Name:
-                            </label>
-                            <input
-                                type="text"
-                                value={className}
-                                onChange={(e) => setClassName(e.target.value)}
-                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                <Box component="form" noValidate autoComplete="off">
+                    <TextField
+                        fullWidth
+                        label="Class Name"
+                        value={className}
+                        onChange={(e) => setClassName(e.target.value)}
+                        margin="normal"
+                        required
+                    />
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="College"
+                                value={college}
+                                onChange={(e) => setCollege(e.target.value)}
                                 required
                             />
-                        </div>
-                        <div className="flex gap-8">
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    College:
-                                </label>
-                                <input
-                                    type="text"
-                                    value={college}
-                                    onChange={(e) => setCollege(e.target.value)}
-                                    className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Department:
-                                </label>
-                                <input
-                                    type="text"
-                                    value={department}
-                                    onChange={(e) => setDepartment(e.target.value)}
-                                    className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Year:
-                                </label>
-                                <input
-                                    type="number"
-                                    value={year}
-                                    onChange={(e) => setYear(Number(e.target.value))}
-                                    className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    required
-                                />
-                            </div>
-                        </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Department"
+                                value={department}
+                                onChange={(e) => setDepartment(e.target.value)}
+                                required
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Year"
+                                type="number"
+                                value={year}
+                                onChange={(e) => setYear(Number(e.target.value))}
+                                required
+                                inputProps={{ min: 1, max: 5 }}
+                            />
+                        </Grid>
+                    </Grid>
 
-                        <button
-                            onClick={handleSubmit}
-                            type="button"
-                            className="w-full bg-blue-600 text-white py-2 rounded-lg text-lg font-medium hover:bg-blue-700 transition"
-                        >
-                            Add Class
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        sx={{ mt: 3 }}
+                        onClick={handleSubmit}
+                    >
+                        Add Class
+                    </Button>
+                </Box>
+            </Paper>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity as "success" | "error"}
+                    variant="filled"
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </Container>
     );
-};
-
-
+}

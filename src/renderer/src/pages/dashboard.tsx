@@ -1,42 +1,40 @@
-import Navbar from '@renderer/components/navbar'
-import AttendanceList from '@renderer/components/AttendenceList'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../context/AuthContextProvider'
+import Navbar from '@renderer/components/navbar'
+import AttendanceList from '@renderer/components/AttendenceList'
+
+import { Box, Button, Container, Typography, Stack, Paper, Fade } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import SchoolIcon from '@mui/icons-material/School'
 
 export default function Dashboard(): JSX.Element {
     const router = useNavigate()
-    // const [user, setUser] = useState(null);
-    const { addMissingUserData, user } = useAuth() // Get the logout function from AuthContext
+    const { addMissingUserData } = useAuth()
 
     useEffect(() => {
         const getData = async () => {
             try {
-                // Get user data from localStorage
                 const storedData = window.localStorage.getItem('userData')
-                console.log('Stored Data:', storedData)
                 if (!storedData) {
                     router('/login')
                     return
                 }
 
-                // Parse user data
                 const data = JSON.parse(storedData)
                 if (!data?.access_token) {
                     router('/login')
                     return
                 }
 
-                // Make API request
                 const response = await fetch('http://127.0.0.1:8000', {
                     method: 'GET',
                     headers: {
-                        Authorization: `Bearer ${data.access_token}`, // Add token
+                        Authorization: `Bearer ${data.access_token}`,
                         'Content-Type': 'application/json'
                     }
                 })
 
-                // Handle response
                 if (response.status === 401) {
                     alert('Session expired, please login again')
                     window.localStorage.removeItem('userData')
@@ -51,8 +49,7 @@ export default function Dashboard(): JSX.Element {
 
                 const res = await response.json()
                 const userData = res.user[0]
-                console.log('API Response:', userData)
-                addMissingUserData(userData.username, userData.fullname, userData.isAdmin) // Update user data in context
+                addMissingUserData(userData.username, userData.fullname, userData.isAdmin)
             } catch (error) {
                 console.error('Error fetching data:', error)
             }
@@ -62,27 +59,47 @@ export default function Dashboard(): JSX.Element {
     }, [])
 
     return (
-        <div className="bg-white">
+        <Box sx={{ backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
             <Navbar />
-            <div className="flex flex-col justify-center items-center w-full">
-                <div className="flex justify-center w-full mt-12">
-                    <button
-                        onClick={() => router('/process-attendance')}
-                        className="text-white text-xl bg-blue-700 w-[30%] h-14 rounded-lg flex justify-center items-center"
-                    >
-                        + New Attendance Record
-                    </button>
-                </div>
-                <AttendanceList />
-                <div className="flex w-full flex-row gap-2 justify-start p-4 items-center">
-                    <a
-                        className="text-white text-xl w-[15%] bg-blue-700  h-14 rounded-2xl flex justify-center items-center"
-                        href="/class-info"
-                    >
-                        Class Data
-                    </a>
-                </div>
-            </div>
-        </div>
+
+            <Container maxWidth="lg" sx={{ mt: 6 }}>
+                <Fade in timeout={500}>
+                    <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
+                        <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            mb={4}
+                        >
+                            <Typography variant="h4" fontWeight={600}>
+                                Dashboard
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<AddIcon />}
+                                onClick={() => router('/process-attendance')}
+                            >
+                                New Attendance Record
+                            </Button>
+                        </Stack>
+
+                        <AttendanceList />
+
+                        <Box mt={5}>
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<SchoolIcon />}
+                                onClick={() => router('/class-info')}
+                                sx={{ px: 4, py: 1.5, borderRadius: 3 }}
+                            >
+                                Class Info
+                            </Button>
+                        </Box>
+                    </Paper>
+                </Fade>
+            </Container>
+        </Box>
     )
 }

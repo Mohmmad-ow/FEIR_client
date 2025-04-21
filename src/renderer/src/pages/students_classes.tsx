@@ -1,76 +1,94 @@
-import GoBack from "@renderer/components/GoBack"
+import GoBack from '@renderer/components/GoBack'
+import {
+    Container,
+    Typography,
+    Box,
+    Card,
+    CardContent,
+    List,
+    ListItemButton,
+    ListItemText,
+    Divider
+} from '@mui/material'
+import { Link } from 'react-router'
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export default function StudentsClassesPage() {
+export default function StudentsClassesPage(): JSX.Element {
     return (
-        <div className="min-h-screen flex flex-col bg-gray-100 items-center justify-start p-4">
+        <Container maxWidth="md" sx={{ mt: 4 }}>
             <GoBack />
-            <div className="w-full max-w-3xl bg-white shadow-md rounded-lg">
-                <div className="bg-blue-600 text-white text-center py-4 rounded-t-lg">
-                    <h2 className="text-2xl font-semibold">Classes & Students Info Page</h2>
-                </div>
+            <Typography variant="h4" fontWeight="bold" align="center" gutterBottom>
+                Classes & Students Info Page
+            </Typography>
 
-                <div className="p-6">
-                    {/* Manage Classes Section */}
-                    <div className="bg-white shadow-sm rounded-lg p-4 mb-4">
-                        <h3 className="text-lg font-bold mb-2">Manage Classes</h3>
-                        <ul className="text-blue-700 space-y-2">
-                            <li>
-                                <a href="/add-class" className="underline">
-                                    Add Class
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/edit-class" className="underline">
-                                    Edit Class
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/remove-class" className="underline">
-                                    Remove Class
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/view-class" className="underline">
-                                    View Classes
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/assign-students" className="underline">
-                                    Assign Students to Classes
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/view-students" className="underline">
-                                    View Students (all)
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+            {/* Manage Classes Section */}
+            <Card variant="outlined" sx={{ mb: 4 }}>
+                <CardContent>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        Manage Classes
+                    </Typography>
+                    <List>
+                        <ListItemButton component={Link} to="/add-class">
+                            <ListItemText primary="Add Class" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/edit-class">
+                            <ListItemText primary="Edit Class" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/remove-class">
+                            <ListItemText primary="Remove Class" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/view-class">
+                            <ListItemText primary="View Classes" />
+                        </ListItemButton>
 
-                    {/* Manage Students Section */}
-                    <div className="bg-white shadow-sm rounded-lg p-4">
-                        <h3 className="text-lg font-bold mb-2">Manage Students</h3>
-                        <ul className="text-blue-700 space-y-2">
-                            <li>
-                                <a href="/assign-students/edit" className="underline">
-                                    Add/Remove Students from a Class
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/attendance-records" className="underline">
-                                    Filter Students by Group, College, Year
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/attendance-records" className="underline">
-                                    View Student Attendance Data
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </List>
+                </CardContent>
+            </Card>
+
+            {/* Manage Students Section */}
+            <Card variant="outlined">
+                <CardContent>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        Manage Students
+                    </Typography>
+                    <List>
+                        <ListItemButton component={Link} to="/view-students">
+                            <ListItemText primary="View Students" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/assign-students">
+                            <ListItemText primary="Assign Students to Classes" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/students/create">
+                            <ListItemText primary="Create Students" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/students/delete">
+                            <ListItemText primary="Delete Students" />
+                        </ListItemButton>
+                        <Divider />
+                        <ListItemButton component={Link} to="/attendance-records">
+                            <ListItemText primary="Filter Students by Group, College, Year" />
+                        </ListItemButton>
+                        <Divider />
+                    </List>
+                </CardContent>
+            </Card>
+            <Card variant="outlined">
+                <CardContent>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        Manage Records
+                    </Typography>
+                    <List>
+                        <ListItemButton component={Link} to="/attendance-records">
+                            <ListItemText primary="View Student Attendance Data" />
+                        </ListItemButton>
+                    </List>
+                </CardContent>
+            </Card>
+        </Container>
     )
 }
